@@ -103,6 +103,7 @@ home_df$RISK_RATED_AREA_B[is.na(home_df$RISK_RATED_AREA_B)] <-median(home_df$RIS
 rows_with_na <- home_df %>%
   filter_all(any_vars(is.na(.)))   #Storing NA's
 colSums(is.na(rows_with_na))  
+View(rows_with_na)
 
 rows_without_na <-home_df %>%
   filter_all(all_vars(!is.na(.)))   #Dropping NA's
@@ -133,7 +134,9 @@ col_names=names(cat_data)
 col_names=col_names[-c(1,9,39,38)]
 col_names=list(col_names)   #list of categories excluding date,policy,premium
 
-looper=unlist(col_names)  #Beacause i 
+looper=unlist(col_names)  #Beacause i faced a problem when i run my
+#code without unlisting but the same had worked with not unlisting 
+#also so to avoid any kind of error we will be using unlisted
 
 looper    #This is a feature that will be used to loop over all the categorical features
 
@@ -182,6 +185,11 @@ binary_vars <-df%>%
   select_if(function(x) is.logical(x) | all(x %in% c("Y","N")))%>%
   mutate(across(everything(),~ifelse(.=="Y",1,0)))
 
+#note fuction(x) used inside select_if is a anonymous function
+#similar to lambda function you see in Python 
+
+
+
 #categorical not binary
 categorical_vars <- df %>%
   select_if(function(x) is.character(x) && n_distinct(x) > 2) 
@@ -211,9 +219,20 @@ correalation_df%>%select(SPEC_ITEM_PREM)
 #############################################################
 ###############################################################
 
+#We have 17 unique values for year build
+#We will find the average premium paid by Yearnbilt
+length(unique(combined_df$YEARBUILT))
 
+combined_df%>%select(YEARBUILT,SPEC_ITEM_PREM)%>%
+  group_by(YEARBUILT)%>%summarise(avg_premium_paid =mean(SPEC_ITEM_PREM),
+                                  count=n())%>%
+  arrange(-avg_premium_paid)
 
-
+#When We see the average premium paid by different house of different
+#Build year we notice that there is a some what of a pattern
+# of seeing 0 average premium paid by some house 
+#built in years like 1750,1910,1930,1950,1970 and 1995 with 0.42 avg_prem
+#and for these years there is less than 5 house built
 
 
 #############################################################
@@ -395,6 +414,36 @@ t.test(t_bus_df$SPEC_ITEM_PREM,t_bus_df$SPEC_ITEM_PREM.1,mu=0)
 
 #P value greater than significance so we accpet the nul.
 #no signifincat diiference in premium paid by homes with bus route and without bus route
+
+
+
+#Flood Poof T_test
+
+grouped_list$FLOODING
+#98% of houses are flood proof so we are conducting t -test 
+#sample size -29 to see if there is significant difference
+#If there is significant difference is the average premium
+#paid by houses which are not flood proof greater
+
+flood_df <-df%>%select(FLOODING,SPEC_ITEM_PREM)
+flood_df_names <-unique(df$FLOODING)
+flood_list <- list()
+for (col in flood_df_names){
+  flood_result <-flood_df%>%filter(FLOODING==col&SPEC_ITEM_PREM>0)%>%
+    select(SPEC_ITEM_PREM)%>%sample_n(size=25,replace=FALSE)
+  flood_list[[col]]<-flood_result
+}
+t_flood_df <- data.frame(flood_list)
+names(t_flood_df)
+t.test(t_flood_df$SPEC_ITEM_PREM,t_flood_df$SPEC_ITEM_PREM.1,mu=0)
+#P val greater than 0.05
+#so we fail to reject the null hypothesis
+#conclude that there is no significant difference
+#in the insurance premium paid by flooding proof  and not flooding
+#proof houses
+
+
+
 
 
 
