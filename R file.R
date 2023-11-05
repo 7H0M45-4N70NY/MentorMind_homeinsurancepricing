@@ -270,86 +270,34 @@ combined_df%>%select(YEARBUILT,LAST_ANN_PREM_GROSS)%>%
 
 #For the policies that opted for MTA_FLAG are paying a higher premium but is only 29% of data
 #ttest result : NULL ACCEPTED : NO Significance
-set.seed(100)
-dummy_df <-df%>%select(MTA_FLAG,LAST_ANN_PREM_GROSS)
-df_names <-unique(df$MTA_FLAG)
-dummy_list <- list()
-for (col in df_names){
-  dummy_result <-dummy_df%>%filter(MTA_FLAG==col&LAST_ANN_PREM_GROSS>0)%>%
-    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
-  dummy_list[[col]]<-dummy_result
-}
-names(dummy_list)
-t_dummy_df <- data.frame(dummy_list)
-names(dummy_df)
-t.test(t_dummy_df$LAST_ANN_PREM_GROSS,t_dummy_df$LAST_ANN_PREM_GROSS.1,mu=0)
 
 #Key care add_on pays higher but is only 5.25% of the population
 #ttest result:Null accepted no significant difference
 
-grouped_list$KEYCARE_ADDON_POST_REN
-grouped_list$KEYCARE_ADDON_POST_REN
-set.seed(100)
-dummy_df <-df%>%select(KEYCARE_ADDON_POST_REN,LAST_ANN_PREM_GROSS)
-df_names <-unique(df$KEYCARE_ADDON_POST_REN)
-dummy_list <- list()
-for (col in df_names){
-  dummy_result <-dummy_df%>%filter(KEYCARE_ADDON_POST_REN==col&LAST_ANN_PREM_GROSS>0)%>%
-    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
-  dummy_list[[col]]<-dummy_result
-}
-names(dummy_list)
-t_dummy_df <- data.frame(dummy_list)
-names(dummy_df)
-t.test(t_dummy_df$LAST_ANN_PREM_GROSS,t_dummy_df$LAST_ANN_PREM_GROSS.1,mu=0)
 
-#Garden_add_on behaves similarly to key are add_on
+#Garden_add_on pays higher but is only 7.28% 
 #ttest result: Null accpeted
-grouped_list$GARDEN_ADDON_POST_REN
-grouped_list$GARDEN_ADDON_PRE_REN
-set.seed(100)
-dummy_df <-df%>%select(GARDEN_ADDON_POST_REN,LAST_ANN_PREM_GROSS)
-df_names <-unique(df$GARDEN_ADDON_POST_REN)
-dummy_list <- list()
-for (col in df_names){
-  dummy_result <-dummy_df%>%filter(GARDEN_ADDON_POST_REN==col&LAST_ANN_PREM_GROSS>0)%>%
-    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
-  dummy_list[[col]]<-dummy_result
-}
-names(dummy_list)
-t_dummy_df <- data.frame(dummy_list)
-names(dummy_df)
-t.test(t_dummy_df$LAST_ANN_PREM_GROSS,t_dummy_df$LAST_ANN_PREM_GROSS.1,mu=0)
 
 
 #Legal_add on opted clients pays a higher premium
 #ttest result: null rejected :there is significant difference in the premium paid
-grouped_list$LEGAL_ADDON_POST_REN
-grouped_list$LEGAL_ADDON_PRE_REN
-set.seed(100)
-dummy_df <-df%>%select(LEGAL_ADDON_POST_REN,LAST_ANN_PREM_GROSS)
-df_names <-unique(df$LEGAL_ADDON_POST_REN)
-dummy_list <- list()
-for (col in df_names){
-  dummy_result <-dummy_df%>%filter(LEGAL_ADDON_POST_REN==col&LAST_ANN_PREM_GROSS>0)%>%
-    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
-  dummy_list[[col]]<-dummy_result
-}
-names(dummy_list)
-t_dummy_df <- data.frame(dummy_list)
-names(dummy_df)
-t.test(t_dummy_df$LAST_ANN_PREM_GROSS,t_dummy_df$LAST_ANN_PREM_GROSS.1,mu=0)
 
-#Payment method variables anova
+
+#Payment method variables 
+#anova result : no significant differnce 
 
 #Almost 100 percentage of clients are of PH occupation status
 
+#Bus_use pays higher premium but is only 1.5% of population
+#ttest result :null rejected there is significant difference in the amout paid
+#bus use pays higher premium
+
 #Not flood proof property has a higher average premium
+#ttest null accepted No significant difference
 
 #Houses with installed Alarms pay higher average premium logically 
 #it should be the opposite it maybe beacause 92% of policies not have alarms
 
-#Houses where Bus can be used pays higher but is only 1% percentage
 
 #Employee status Anova should be conducted before any conclusions
 
@@ -367,6 +315,7 @@ employee_status=df%>%select(P1_EMP_STATUS,LAST_ANN_PREM_GROSS)
 emp_values=unique(df$P1_EMP_STATUS)
 employee_status_df =list()
 
+set.seed(120)
 for (i in emp_values){
   theresult <-employee_status%>%filter(P1_EMP_STATUS==i)%>%select(LAST_ANN_PREM_GROSS)%>%
     sample_n(size = 15,replace = F)
@@ -383,14 +332,14 @@ summary(aov(values~ind,data=employee_stack))
 #P_val greater than 0.05 and #f _critical greater than f_value
 #We accept the null and conclude there is no significant difference
 #In the Premium Paid by different client from different employee_status
-
-
+#DIFF :Same result
 
 #Anova amogst payment methods and their premium paid
 pay_methods <- df%>%select(PAYMENT_METHOD,LAST_ANN_PREM_GROSS)
 pay_values=unique(df$PAYMENT_METHOD)
 pay_status =list()
 
+set.seed(120)
 for (i in pay_values){
   theresult <-pay_methods%>%filter(PAYMENT_METHOD==i)%>%select(LAST_ANN_PREM_GROSS)%>%
     sample_n(size = 30,replace = F)
@@ -404,7 +353,7 @@ pay_aov_df <-data.frame(pay_status) #We have got the right format with no names
 pay_stack <-stack(pay_aov_df)
 names(pay_stack)
 summary(aov(values~ind,data=pay_stack))
-#P value greater tha signifincae indicating accepting null p val 0.29 fval :1.277
+#P value greater tha signifincae indicating accepting null 
 #F critical also implying the same 
 #conclusion is that there is no significant difference
 #lets trying increasing sample size p val as come down to 0.17 
@@ -415,6 +364,7 @@ names(df)
 pol_methods <- df%>%select(POL_STATUS,LAST_ANN_PREM_GROSS)
 pol_values=unique(df$POL_STATUS)
 pol_status =list()
+set.seed(120)
 for (i in pol_values){
   theresult <-pol_methods%>%filter(POL_STATUS==i)%>%select(LAST_ANN_PREM_GROSS)%>%
     sample_n(size = 15,replace = F)
@@ -429,7 +379,7 @@ pol_aov_df <-data.frame(pol_status) #We have got the right format with no names
 pol_stack <-stack(pol_aov_df)
 names(pol_stack)
 summary(aov(values~ind,data=pol_stack))
-#P value less than 0.05
+#P value greater than 0.05
 #conclude that there is not significant difference in means of these policy  status
 
 
@@ -453,6 +403,7 @@ grouped_list$SAFE_INSTALLED    #    +0.31%
 
 #Safe installed t test
 
+set.seed(120)
 safe_df <-df%>%select(SAFE_INSTALLED,LAST_ANN_PREM_GROSS)
 safe_df_names <-unique(df$SAFE_INSTALLED)
 safe_list <- list()
@@ -486,6 +437,7 @@ t.test(t_safe_df$LAST_ANN_PREM_GROSS,mu=20.7332,alternative = ("greater"))
 bus_df <-df%>%select(BUS_USE,LAST_ANN_PREM_GROSS)
 bus_df_names <-unique(df$BUS_USE)
 bus_list <- list()
+set.seed(100)
 for (col in bus_df_names){
   bus_result <-bus_df%>%filter(BUS_USE==col&LAST_ANN_PREM_GROSS>0)%>%
     select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
@@ -511,6 +463,7 @@ grouped_list$FLOODING
 flood_df <-df%>%select(FLOODING,LAST_ANN_PREM_GROSS)
 flood_df_names <-unique(df$FLOODING)
 flood_list <- list()
+set.seed(120)
 for (col in flood_df_names){
   flood_result <-flood_df%>%filter(FLOODING==col&LAST_ANN_PREM_GROSS>0)%>%
     select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
