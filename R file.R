@@ -1,4 +1,13 @@
-setwd(dir = "G:/LILTHOMA/Rise_Wpu/Mentor_Mind/Identify premium pricing attributes for home insurance using R")
+#Notes:
+#I orginally took SPEC_ITEM_PREM as the Insurance Premium
+#Then i came to know the LAST_ANNUAL_PREMIUM_GROSS  - So lets update that
+
+#We could see a lot of differences while making this change we will document these as  #DIFF:
+
+
+
+
+setwd(dir = "G:/LILTHOMA/Rise_Wpu/Mentor_Mind/Identify_premium_pricing_attributes_for_home_insurance_using_R")
 getwd()
 library(ggplot2)
 library(dplyr)
@@ -11,7 +20,8 @@ str(home_df)
 nrow(home_df)
 
 #Lot of Blank rows are present should be converted to NA
-home_df[home_df==""]<-NA   #Converting Blank rows to NA
+
+home_df[home_df==""]<-NA       #Converting Blank rows to NA
 
 #Quote_Date is in the format m/d/y convert it to the correct format
 
@@ -38,6 +48,8 @@ home_df=home_df%>%select(-c(CLERICAL,P1_PT_EMP_STATUS,CAMPAIGN_DESC,MTA_DATE))
 unique(home_df$PAYMENT_FREQUENCY)
 home_df$PAYMENT_FREQUENCY=replace(home_df$PAYMENT_FREQUENCY,is.na(home_df$PAYMENT_FREQUENCY),0)
 list_0_impute <- c("MTA_FAP","MTA_APRP","PAYMENT_FREQUENCY")
+
+# home_df$MTA_FLAG Because mt is no we can say the values for mta_fap and mta_aprp is 0
 
 for (col in list_0_impute){
   if (any(is.na(home_df[col]))){
@@ -87,6 +99,10 @@ home_df$RISK_RATED_AREA_B[is.na(home_df$RISK_RATED_AREA_B)] <-median(home_df$RIS
 
 
 
+
+
+
+
 ##################################################################################
 ##################################################################################
 ####################################################################################
@@ -125,10 +141,10 @@ df=cleaned_df
 
 
 
-# Assuming your dataframe is named 'df' and your target variable is 'SPEC_ITEM_PREM'
+# Assuming your dataframe is named 'df' and your target variable is 'LAST_ANN_PREM_GROSS'
 selected_data <- df %>%
   select_if(is.character)              
-premiums_=df%>%select(c(Police,SPEC_ITEM_PREM))
+premiums_=df%>%select(c(Police,LAST_ANN_PREM_GROSS))
 cat_data=inner_join(selected_data,premiums_,by="Police")
 col_names=names(cat_data) 
 col_names=col_names[-c(1,9,39,38)]
@@ -148,7 +164,7 @@ for (col in looper) {
   # Group the data and calculate the mean
   grouped_data <- cat_data %>%
     group_by_at(vars(col)) %>%
-    summarise(avg_premium = mean(SPEC_ITEM_PREM), counts = n(), .groups = "drop") %>%
+    summarise(avg_premium = mean(LAST_ANN_PREM_GROSS), counts = n(), .groups = "drop") %>%
     mutate(percentage = counts / nrow(cat_data) * 100) %>%
     select(col, avg_premium, percentage)
   
@@ -170,6 +186,12 @@ df$quote_month <-month(df$QUOTE_DATE)   #Quote_month
 
 df$P1_DOB <-dmy(df$P1_DOB)
 df$age <- round(difftime(today(),df$P1_DOB,units="days")/365)  #Age column
+
+
+age <-df%>%group_by(age)%>%summarise(avg_prem = mean(LAST_ANN_PREM_GROSS),
+                                     cnt_prct =round(n()/nrow(df),3),
+                                                     cnt=n())%>%arrange(-cnt)
+tail(age)
 
 df <- df[-c(1,18,61)] # Removing quote date dob and policy number 
 View(df)
@@ -210,10 +232,7 @@ names(combined_df)
 str(combined_df)
 correlation_matrix <- cor(combined_df)
 correalation_df <-data.frame(correlation_matrix)
-correalation_df%>%select(SPEC_ITEM_PREM)
-#From the above correlation data we can take ones who have a strong negative or postive 
-#correlation one with low positive and negatives wont be requried
-#Age not select yet
+correalation_df%>%select(LAST_ANN_PREM_GROSS)
 
 ###########################################################
 #############################################################
@@ -223,16 +242,11 @@ correalation_df%>%select(SPEC_ITEM_PREM)
 #We will find the average premium paid by Yearnbilt
 length(unique(combined_df$YEARBUILT))
 
-combined_df%>%select(YEARBUILT,SPEC_ITEM_PREM)%>%
-  group_by(YEARBUILT)%>%summarise(avg_premium_paid =mean(SPEC_ITEM_PREM),
+combined_df%>%select(YEARBUILT,LAST_ANN_PREM_GROSS)%>%
+  group_by(YEARBUILT)%>%summarise(avg_premium_paid =mean(LAST_ANN_PREM_GROSS),
                                   count=n())%>%
   arrange(-avg_premium_paid)
 
-#When We see the average premium paid by different house of different
-#Build year we notice that there is a some what of a pattern
-# of seeing 0 average premium paid by some house 
-#built in years like 1750,1910,1930,1950,1970 and 1995 with 0.42 avg_prem
-#and for these years there is less than 5 house built
 
 
 #############################################################
@@ -242,19 +256,89 @@ combined_df%>%select(YEARBUILT,SPEC_ITEM_PREM)%>%
 ##########################################################################
 # MTA_FAP LAST_ANNUAL_PREM SAFE_INSTALLED shows high correlataion these must 
 # Influence the premium amount paid significatly
+#DIFF :#MTA _FAP & APRP .4 and .2 correlation
+       #YEAR BUILT,PROP_TYPE,OWNERSHIP_TYPE, are showing negative of .24,.26, and .28
+       #SUM_INSURED_BUILDINGS  0.59  and NCD_GRANTED_YEARS_B 0.46
+       #LEGAL add on Pre and Post renewal is .21 and .18
+       #SAFE Installed is only .1 here and SPEC_ITEM_PREM is .23
+       #
 
 #for the different policy status the highest average premium was paid by cancelled
 #policies second is lapsed which us 27% of the data 70% is live
 #anova to find out if there is any significance
+#DIFF :nothing
 
 #For the policies that opted for MTA_FLAG are paying a higher premium but is only 29% of data
-#Ttest or Ztests
+#ttest result : NULL ACCEPTED : NO Significance
+set.seed(100)
+dummy_df <-df%>%select(MTA_FLAG,LAST_ANN_PREM_GROSS)
+df_names <-unique(df$MTA_FLAG)
+dummy_list <- list()
+for (col in df_names){
+  dummy_result <-dummy_df%>%filter(MTA_FLAG==col&LAST_ANN_PREM_GROSS>0)%>%
+    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
+  dummy_list[[col]]<-dummy_result
+}
+names(dummy_list)
+t_dummy_df <- data.frame(dummy_list)
+names(dummy_df)
+t.test(t_dummy_df$LAST_ANN_PREM_GROSS,t_dummy_df$LAST_ANN_PREM_GROSS.1,mu=0)
 
-#Keycare add_on pays higher but is only 4% of the population
-#ttests
+#Key care add_on pays higher but is only 5.25% of the population
+#ttest result:Null accepted no significant difference
+
+grouped_list$KEYCARE_ADDON_POST_REN
+grouped_list$KEYCARE_ADDON_POST_REN
+set.seed(100)
+dummy_df <-df%>%select(KEYCARE_ADDON_POST_REN,LAST_ANN_PREM_GROSS)
+df_names <-unique(df$KEYCARE_ADDON_POST_REN)
+dummy_list <- list()
+for (col in df_names){
+  dummy_result <-dummy_df%>%filter(KEYCARE_ADDON_POST_REN==col&LAST_ANN_PREM_GROSS>0)%>%
+    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
+  dummy_list[[col]]<-dummy_result
+}
+names(dummy_list)
+t_dummy_df <- data.frame(dummy_list)
+names(dummy_df)
+t.test(t_dummy_df$LAST_ANN_PREM_GROSS,t_dummy_df$LAST_ANN_PREM_GROSS.1,mu=0)
+
 #Garden_add_on behaves similarly to key are add_on
+#ttest result: Null accpeted
+grouped_list$GARDEN_ADDON_POST_REN
+grouped_list$GARDEN_ADDON_PRE_REN
+set.seed(100)
+dummy_df <-df%>%select(GARDEN_ADDON_POST_REN,LAST_ANN_PREM_GROSS)
+df_names <-unique(df$GARDEN_ADDON_POST_REN)
+dummy_list <- list()
+for (col in df_names){
+  dummy_result <-dummy_df%>%filter(GARDEN_ADDON_POST_REN==col&LAST_ANN_PREM_GROSS>0)%>%
+    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
+  dummy_list[[col]]<-dummy_result
+}
+names(dummy_list)
+t_dummy_df <- data.frame(dummy_list)
+names(dummy_df)
+t.test(t_dummy_df$LAST_ANN_PREM_GROSS,t_dummy_df$LAST_ANN_PREM_GROSS.1,mu=0)
 
-#Legal_add on's post and pre also pays a higher premium
+
+#Legal_add on opted clients pays a higher premium
+#ttest result: null rejected :there is significant difference in the premium paid
+grouped_list$LEGAL_ADDON_POST_REN
+grouped_list$LEGAL_ADDON_PRE_REN
+set.seed(100)
+dummy_df <-df%>%select(LEGAL_ADDON_POST_REN,LAST_ANN_PREM_GROSS)
+df_names <-unique(df$LEGAL_ADDON_POST_REN)
+dummy_list <- list()
+for (col in df_names){
+  dummy_result <-dummy_df%>%filter(LEGAL_ADDON_POST_REN==col&LAST_ANN_PREM_GROSS>0)%>%
+    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
+  dummy_list[[col]]<-dummy_result
+}
+names(dummy_list)
+t_dummy_df <- data.frame(dummy_list)
+names(dummy_df)
+t.test(t_dummy_df$LAST_ANN_PREM_GROSS,t_dummy_df$LAST_ANN_PREM_GROSS.1,mu=0)
 
 #Payment method variables anova
 
@@ -278,13 +362,13 @@ combined_df%>%select(YEARBUILT,SPEC_ITEM_PREM)%>%
 
 #Anova among st Employee status
 names(df)
-employee_status=df%>%select(P1_EMP_STATUS,SPEC_ITEM_PREM)
+employee_status=df%>%select(P1_EMP_STATUS,LAST_ANN_PREM_GROSS)
 
 emp_values=unique(df$P1_EMP_STATUS)
 employee_status_df =list()
 
 for (i in emp_values){
-  theresult <-employee_status%>%filter(P1_EMP_STATUS==i)%>%select(SPEC_ITEM_PREM)%>%
+  theresult <-employee_status%>%filter(P1_EMP_STATUS==i)%>%select(LAST_ANN_PREM_GROSS)%>%
     sample_n(size = 15,replace = F)
   vectors <-unlist(theresult)
   
@@ -303,12 +387,12 @@ summary(aov(values~ind,data=employee_stack))
 
 
 #Anova amogst payment methods and their premium paid
-pay_methods <- df%>%select(PAYMENT_METHOD,SPEC_ITEM_PREM)
+pay_methods <- df%>%select(PAYMENT_METHOD,LAST_ANN_PREM_GROSS)
 pay_values=unique(df$PAYMENT_METHOD)
 pay_status =list()
 
 for (i in pay_values){
-  theresult <-pay_methods%>%filter(PAYMENT_METHOD==i)%>%select(SPEC_ITEM_PREM)%>%
+  theresult <-pay_methods%>%filter(PAYMENT_METHOD==i)%>%select(LAST_ANN_PREM_GROSS)%>%
     sample_n(size = 30,replace = F)
   vectors <-unlist(theresult)
   
@@ -328,11 +412,11 @@ summary(aov(values~ind,data=pay_stack))
 
 #Anova amogst different policy status
 names(df)
-pol_methods <- df%>%select(POL_STATUS,SPEC_ITEM_PREM)
+pol_methods <- df%>%select(POL_STATUS,LAST_ANN_PREM_GROSS)
 pol_values=unique(df$POL_STATUS)
 pol_status =list()
 for (i in pol_values){
-  theresult <-pol_methods%>%filter(POL_STATUS==i)%>%select(SPEC_ITEM_PREM)%>%
+  theresult <-pol_methods%>%filter(POL_STATUS==i)%>%select(LAST_ANN_PREM_GROSS)%>%
     sample_n(size = 15,replace = F)
   vectors <-unlist(theresult)
   
@@ -369,18 +453,18 @@ grouped_list$SAFE_INSTALLED    #    +0.31%
 
 #Safe installed t test
 
-safe_df <-df%>%select(SAFE_INSTALLED,SPEC_ITEM_PREM)
+safe_df <-df%>%select(SAFE_INSTALLED,LAST_ANN_PREM_GROSS)
 safe_df_names <-unique(df$SAFE_INSTALLED)
 safe_list <- list()
 for (col in safe_df_names){
-  safe_result <-safe_df%>%filter(SAFE_INSTALLED==col&SPEC_ITEM_PREM>0)%>%
-    select(SPEC_ITEM_PREM)%>%sample_n(size=25,replace=FALSE)
+  safe_result <-safe_df%>%filter(SAFE_INSTALLED==col&LAST_ANN_PREM_GROSS>0)%>%
+    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
   safe_list[[col]]<-safe_result
 }
 names(safe_list)
 t_safe_df <- data.frame(safe_list)
 names(t_safe_df)
-t.test(t_safe_df$SPEC_ITEM_PREM,t_safe_df$SPEC_ITEM_PREM.1,mu=0)
+t.test(t_safe_df$LAST_ANN_PREM_GROSS,t_safe_df$LAST_ANN_PREM_GROSS.1,mu=0)
 #p val is less than signifacne so we reject the null hypothesis
 #conclude that there is signifincant difference in the premium amout paid by
 #safe installed and not installed
@@ -391,26 +475,25 @@ t.test(t_safe_df$SPEC_ITEM_PREM,t_safe_df$SPEC_ITEM_PREM.1,mu=0)
 #find the mean of the premium amount which is greater than 0
 #compare with the sample for houses with safe installed
 
-the_val <-df%>%select(SPEC_ITEM_PREM)%>%filter(SPEC_ITEM_PREM >0)%>%summarise(mean=mean(SPEC_ITEM_PREM))
-t.test(t_safe_df$SPEC_ITEM_PREM,mu=20.7332,alternative = ("greater"))
+the_val <-df%>%select(LAST_ANN_PREM_GROSS)%>%filter(LAST_ANN_PREM_GROSS >0)%>%summarise(mean=mean(LAST_ANN_PREM_GROSS))
+t.test(t_safe_df$LAST_ANN_PREM_GROSS,mu=20.7332,alternative = ("greater"))
 #P val less than 0.05 
 #So we conclude that houses with safe installed pays greater premium
 
 
-
 #Bus Opt t test
 
-bus_df <-df%>%select(BUS_USE,SPEC_ITEM_PREM)
+bus_df <-df%>%select(BUS_USE,LAST_ANN_PREM_GROSS)
 bus_df_names <-unique(df$BUS_USE)
 bus_list <- list()
 for (col in bus_df_names){
-  bus_result <-bus_df%>%filter(BUS_USE==col&SPEC_ITEM_PREM>0)%>%
-    select(SPEC_ITEM_PREM)%>%sample_n(size=25,replace=FALSE)
+  bus_result <-bus_df%>%filter(BUS_USE==col&LAST_ANN_PREM_GROSS>0)%>%
+    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
   bus_list[[col]]<-bus_result
 }
 t_bus_df <- data.frame(bus_list)
 names(t_bus_df)
-t.test(t_bus_df$SPEC_ITEM_PREM,t_bus_df$SPEC_ITEM_PREM.1,mu=0)
+t.test(t_bus_df$LAST_ANN_PREM_GROSS,t_bus_df$LAST_ANN_PREM_GROSS.1,mu=0)
 
 #P value greater than significance so we accpet the nul.
 #no signifincat diiference in premium paid by homes with bus route and without bus route
@@ -425,17 +508,17 @@ grouped_list$FLOODING
 #If there is significant difference is the average premium
 #paid by houses which are not flood proof greater
 
-flood_df <-df%>%select(FLOODING,SPEC_ITEM_PREM)
+flood_df <-df%>%select(FLOODING,LAST_ANN_PREM_GROSS)
 flood_df_names <-unique(df$FLOODING)
 flood_list <- list()
 for (col in flood_df_names){
-  flood_result <-flood_df%>%filter(FLOODING==col&SPEC_ITEM_PREM>0)%>%
-    select(SPEC_ITEM_PREM)%>%sample_n(size=25,replace=FALSE)
+  flood_result <-flood_df%>%filter(FLOODING==col&LAST_ANN_PREM_GROSS>0)%>%
+    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
   flood_list[[col]]<-flood_result
 }
 t_flood_df <- data.frame(flood_list)
 names(t_flood_df)
-t.test(t_flood_df$SPEC_ITEM_PREM,t_flood_df$SPEC_ITEM_PREM.1,mu=0)
+t.test(t_flood_df$LAST_ANN_PREM_GROSS,t_flood_df$LAST_ANN_PREM_GROSS.1,mu=0)
 #P val greater than 0.05
 #so we fail to reject the null hypothesis
 #conclude that there is no significant difference
@@ -477,6 +560,19 @@ chi_test(df,"POL_STATUS","SAFE_INSTALLED")
 chi_test(df,"POL_STATUS","OCC_STATUS")
 #P val is slighly greater than 0.05 so accept the null and say that there is association
 #We conclude that there is slight independnce amoung these
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
