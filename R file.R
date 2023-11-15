@@ -1,10 +1,3 @@
-#Notes:
-#I orginally took SPEC_ITEM_PREM as the Insurance Premium
-#Then i came to know the LAST_ANNUAL_PREMIUM_GROSS  - So lets update that
-
-#We could see a lot of differences while making this change we will document these as  #DIFF:
-
-
 
 
 setwd(dir = "G:/LILTHOMA/Rise_Wpu/Mentor_Mind/Identify_premium_pricing_attributes_for_home_insurance_using_R")
@@ -166,7 +159,7 @@ for (col in looper) {
     group_by_at(vars(col)) %>%
     summarise(avg_premium = mean(LAST_ANN_PREM_GROSS), counts = n(), .groups = "drop") %>%
     mutate(percentage = counts / nrow(cat_data) * 100) %>%
-    select(col, avg_premium, percentage)
+    select(col, avg_premium, percentage,counts)
   
   # Add the data to the list
   grouped_list[[col]] <-grouped_data
@@ -192,6 +185,10 @@ age <-df%>%group_by(age)%>%summarise(avg_prem = mean(LAST_ANN_PREM_GROSS),
                                      cnt_prct =round(n()/nrow(df),3),
                                                      cnt=n())%>%arrange(-cnt)
 tail(age)
+
+
+df$age <- as.numeric(df$age)
+
 
 df <- df[-c(1,18,61)] # Removing quote date dob and policy number 
 View(df)
@@ -233,6 +230,16 @@ str(combined_df)
 correlation_matrix <- cor(combined_df)
 correalation_df <-data.frame(correlation_matrix)
 correalation_df%>%select(LAST_ANN_PREM_GROSS)
+
+grouped_list$CONTENTS_COVER
+
+#CORRELATION OF ONLY THE NUMERIACAL FEATURES
+correl_matrix_numeric <- cor(numeric_vars)
+corr_df_numerical <- data.frame(correl_matrix_numeric)
+corr_df_numerical%>%select(LAST_ANN_PREM_GROSS)
+
+
+
 
 ###########################################################
 #############################################################
@@ -286,7 +293,7 @@ combined_df%>%select(YEARBUILT,LAST_ANN_PREM_GROSS)%>%
 #Payment method variables 
 #anova result : no significant differnce 
 
-#Almost 100 percentage of clients are of PH occupation status
+#Almost 100 percentage of clients are of PH occupancy status
 
 #Bus_use pays higher premium but is only 1.5% of population
 #ttest result :null rejected there is significant difference in the amout paid
@@ -318,7 +325,7 @@ employee_status_df =list()
 set.seed(120)
 for (i in emp_values){
   theresult <-employee_status%>%filter(P1_EMP_STATUS==i)%>%select(LAST_ANN_PREM_GROSS)%>%
-    sample_n(size = 15,replace = F)
+    sample_n(size = 25,replace = T)
   vectors <-unlist(theresult)
   
   employee_status_df[[i]] <-theresult
@@ -329,10 +336,11 @@ employee_aov_df <-data.frame(employee_status_df) #We have got the right format w
 employee_stack <-stack(employee_aov_df)
 names(employee_stack)
 summary(aov(values~ind,data=employee_stack))
-#P_val greater than 0.05 and #f _critical greater than f_value
-#We accept the null and conclude there is no significant difference
+#P_val less than 0.05 and # f_value greater than f ctrical
+#We reject the null and conclude there is significant difference
 #In the Premium Paid by different client from different employee_status
 #DIFF :Same result
+
 
 #Anova amogst payment methods and their premium paid
 pay_methods <- df%>%select(PAYMENT_METHOD,LAST_ANN_PREM_GROSS)
@@ -367,7 +375,7 @@ pol_status =list()
 set.seed(120)
 for (i in pol_values){
   theresult <-pol_methods%>%filter(POL_STATUS==i)%>%select(LAST_ANN_PREM_GROSS)%>%
-    sample_n(size = 15,replace = F)
+    sample_n(size = 25,replace = T)
   vectors <-unlist(theresult)
   
   pol_status[[i]] <-theresult
@@ -383,10 +391,47 @@ summary(aov(values~ind,data=pol_stack))
 #conclude that there is not significant difference in means of these policy  status
 
 
-#for policy status,employee_status and payment method
+#for policy status and payment method
 #There is no significant difference is means of the categories in these columns
-#So these are not a strong indicator eventhough the below data tells a different story
+#So these are not a strong indicator eventhought the data tells a different story because its unbalanced
 #It is no statistically significant #These has only a small_influence
+
+#On the other hand employee_status has a significant difference in the permium paid
+
+
+#p_VAL less THAN SIGNIFICANCE SO WE reject the NULL
+#there is signifincat difference in prmeium paid by differenct occupational status
+
+
+grouped_list$P1_MAR_STATUS
+
+#Anova amogst different mar status
+names(df)
+mar_methods <- df%>%select(P1_MAR_STATUS,LAST_ANN_PREM_GROSS)
+mar_values=unique(df$P1_MAR_STATUS)
+mar_status =list()
+set.seed(120)
+for (i in mar_values){
+  theresult <-mar_methods%>%filter(P1_MAR_STATUS==i)%>%select(LAST_ANN_PREM_GROSS)%>%
+    sample_n(size = 26,replace = T)
+  vectors <-unlist(theresult)
+  
+  mar_status[[i]] <-theresult
+}
+
+names(mar_status)
+
+mar_aov_df <-data.frame(mar_status) #We have got the right format with no names
+mar_stack <-stack(mar_aov_df)
+names(mar_stack)
+summary(aov(values~ind,data=mar_stack))
+
+
+
+
+
+
+
 
 
 grouped_list$POL_STATUS        #    -0.05%
@@ -409,7 +454,7 @@ safe_df_names <-unique(df$SAFE_INSTALLED)
 safe_list <- list()
 for (col in safe_df_names){
   safe_result <-safe_df%>%filter(SAFE_INSTALLED==col&LAST_ANN_PREM_GROSS>0)%>%
-    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
+    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=35,replace=FALSE)
   safe_list[[col]]<-safe_result
 }
 names(safe_list)
@@ -427,7 +472,7 @@ t.test(t_safe_df$LAST_ANN_PREM_GROSS,t_safe_df$LAST_ANN_PREM_GROSS.1,mu=0)
 #compare with the sample for houses with safe installed
 
 the_val <-df%>%select(LAST_ANN_PREM_GROSS)%>%filter(LAST_ANN_PREM_GROSS >0)%>%summarise(mean=mean(LAST_ANN_PREM_GROSS))
-t.test(t_safe_df$LAST_ANN_PREM_GROSS,mu=20.7332,alternative = ("greater"))
+t.test(safe_list$Y,mu=187.768,alternative = ("greater"))
 #P val less than 0.05 
 #So we conclude that houses with safe installed pays greater premium
 
@@ -440,15 +485,17 @@ bus_list <- list()
 set.seed(100)
 for (col in bus_df_names){
   bus_result <-bus_df%>%filter(BUS_USE==col&LAST_ANN_PREM_GROSS>0)%>%
-    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
+    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=35,replace=FALSE)
   bus_list[[col]]<-bus_result
 }
 t_bus_df <- data.frame(bus_list)
 names(t_bus_df)
 t.test(t_bus_df$LAST_ANN_PREM_GROSS,t_bus_df$LAST_ANN_PREM_GROSS.1,mu=0)
 
-#P value greater than significance so we accpet the nul.
-#no signifincat diiference in premium paid by homes with bus route and without bus route
+#P value less than significance so we reject the nul.
+#There is  signifincat diiference in premium paid by homes with bus route and without bus route
+t.test(bus_list$N,mu=187.768,alternative = ("greater"))
+#Houses which is yes for bus route pays a higher averahe premium
 
 
 
@@ -466,19 +513,39 @@ flood_list <- list()
 set.seed(120)
 for (col in flood_df_names){
   flood_result <-flood_df%>%filter(FLOODING==col&LAST_ANN_PREM_GROSS>0)%>%
-    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=25,replace=FALSE)
+    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=35,replace=FALSE)
   flood_list[[col]]<-flood_result
 }
+names(flood_list)
 t_flood_df <- data.frame(flood_list)
 names(t_flood_df)
 t.test(t_flood_df$LAST_ANN_PREM_GROSS,t_flood_df$LAST_ANN_PREM_GROSS.1,mu=0)
-#P val greater than 0.05
-#so we fail to reject the null hypothesis
-#conclude that there is no significant difference
+#P val less than 0.05
+#so we  reject the null hypothesis
+#conclude that there is significant difference
 #in the insurance premium paid by flooding proof  and not flooding
 #proof houses
+t.test(flood_list$N,mu=187.768,alternative = ("greater"))
+#The houses with no flooding pays a higher premium
 
 
+
+alarm_df <-df%>%select(APPR_ALARM,LAST_ANN_PREM_GROSS)
+alarm_df_names <-unique(df$APPR_ALARM)
+alarm_list <- list()
+set.seed(120)
+for (col in alarm_df_names){
+  alarm_result <-alarm_df%>%filter(APPR_ALARM==col&LAST_ANN_PREM_GROSS>0)%>%
+    select(LAST_ANN_PREM_GROSS)%>%sample_n(size=35,replace=FALSE)
+  alarm_list[[col]]<-alarm_result
+}
+t_alarm_df <- data.frame(alarm_list)
+names(t_alarm_df)
+t.test(t_alarm_df$LAST_ANN_PREM_GROSS,t_alarm_df$LAST_ANN_PREM_GROSS.1,mu=0)
+# p val less than significance level so we reject the null
+#conclude that there is significant difference
+t.test(alarm_list$Y,mu=187.768,alternative = ("greater"))
+#Houses with appropriate alarm
 
 
 
@@ -501,6 +568,10 @@ chi_test(df,CLAIM3YEARS,POL_STATUS)
 #Pval is less than significance so we conclude that there is association
 names(df)
 
+
+chi_test(df,"FLOODING","SUBSIDENCE")
+
+
 chi_test(df,"BUS_USE","SAFE_INSTALLED")
 #P val less than 0.05 so reject the null and say that there is association
 
@@ -514,33 +585,501 @@ chi_test(df,"POL_STATUS","OCC_STATUS")
 #P val is slighly greater than 0.05 so accept the null and say that there is association
 #We conclude that there is slight independnce amoung these
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ##################################################
 ############################## END EDA #################
 ###############################################################
+#Merging post and pre renewal fields for key care,emergencies add on extra house property add on and garden add on
+
+df$KEYCARE_ADDON <- if_else(df$KEYCARE_ADDON_POST_REN=="Y"|df$KEYCARE_ADDON_PRE_REN=="Y","Y","N")
+df$LEGAL_ADDON <- if_else(df$LEGAL_ADDON_POST_REN=="Y"|df$LEGAL_ADDON_PRE_REN=="Y","Y","N")
+df$GARDEN_ADDON <- if_else(df$GARDEN_ADDON_PRE_REN=="Y"|df$GARDEN_ADDON_POST_REN=="Y","Y","N")
+df$HOME_EM_ADDON <- if_else(df$HOME_EM_ADDON_PRE_REN=="Y"|df$HOME_EM_ADDON_POST_REN=="Y","Y","N")
 
 
-'''
-DATA VISUALISATION IDEAS
+df$HP1_ADDON <-if_else(df$HP1_ADDON_POST_REN=="Y"|
+                        df$HP1_ADDON_PRE_REN=="Y",1,0)
+df$HP2_ADDON <-if_else(df$HP2_ADDON_POST_REN=="Y"|
+                        df$HP2_ADDON_PRE_REN=="Y",1,0)
+df$HP3_ADDON <-if_else(df$HP3_ADDON_POST_REN=="Y"|
+                        df$HP3_ADDON_PRE_REN=="Y",1,0)
+select()
 
-* Client age and Policy_duration      SCATTER PLOT
-* Year_Built and Premium              BARPLOT OR SCATTERPLOT
-* Claim last Years and Premium        BARPLOT
-* Last Claimed amount and Premium     SCATTERPLOT
-* Relation between quote_month and premium and counts of Premium      SCATTERPLLOT
-* All categorical features againts premium      BOXPLOTS
-'''
+
+#Before Visualizing everything we will iterate over everything
+#that is not needed 
+#How are we deciding if the features are not needed
+#BY the Hypothesis tests we have Done 
+#We will only select feature that are significantly 
+#influencing the premium paid by its elements
+#These are most Applicable on categorical data or discrete data 
+
+grouped_list$OCC_STATUS
+
+#Lastly under the policy status lapsed policies are policies where clients didnt complete their
+#payment obligations  we will create a column resiliated indicating is a client has defrauded in their
+#payments
+df$resiliated <-ifelse(df$POL_STATUS=="Lapsed","Y","N")
+
+#Resiliated contracts Premium tends to be higher
+names(df)
+df$SEC_DISC_REQ
+df$PAYMENT_METHOD
+df$OCC_STATUS
+
+
+df%>%group_by(resiliated)%>%summarise(avg=median(LAST_ANN_PREM_GROSS,trim=1))
+fraud_df <-df%>%select("P1_EMP_STATUS","P1_MAR_STATUS","age","LEGAL_ADDON","PROP_TYPE","P1_POLICY_REFUSED",
+          CLAIM3YEARS,MTA_FLAG,P1_SEX,"resiliated","SEC_DISC_REQ","PAYMENT_METHOD","OCC_STATUS")
+names(df)
+customer_features <- c("P1_EMP_STATUS","P1_MAR_STATUS","age","LEGAL_ADDON","PROP_TYPE","P1_POLICY_REFUSED",
+                       "CLAIM3YEARS","MTA_FLAG","P1_SEX","SEC_DISC_REQ","PAYMENT_METHOD","OCC_STATUS")
+numeric_variables <-c("NCD_GRANTED_YEARS_B","NCD_GRANTED_YEARS_C","SUM_INSURED_BUILDINGS","SUM_INSURED_CONTENTS","UNSPEC_HRP_PREM")
+
+fraud_numeric_df <-df%>%select(numeric_variables,"resiliated")
+
+fraud_numeric_df%>%group_by(resiliated)%>%summarise(std=var(NCD_GRANTED_YEARS_B))
+fraud_numeric_df%>%group_by(resiliated)%>%summarise(std=mean(SUM_INSURED_BUILDINGS))
+
+par(mfrow=c(3,2))  # Setting the plotting layout
+
+for (feature in numeric_variables) {
+  boxplot(fraud_numeric_df[[feature]] ~ fraud_numeric_df$resiliated,
+          main = paste("Boxplot of", feature, "by resiliated"),
+          xlab = "Resiliated"
+          ,ylab="")
+}
+
+par(mfrow = c(3, 2)) 
+
+
+library(caret)
+View(fraud_numeric_df)
+pair_kdr <- featurePlot(x = fraud_numeric_df[,1:5],
+                        y = factor(fraud_numeric_df$resiliated),
+                        plot = "density",
+                        strip = strip.custom(par.strip.text = list(cex = 0.7)),
+                        scales = list(x = list(relation = "free"),
+                                      y = list(relation = "free")))
+
+plot_list <- list()
+
+for (name in names(fraud_list)) {
+  plot <- ggplot(data = fraud_list[[name]], aes(x = !!sym(name), y = percentage)) +
+    geom_bar(stat = "identity", fill = "skyblue", alpha = 0.8) +
+    labs(title = paste("Distribution of", name, "among defaulted contracts"),
+         x = name, y = "Percentage") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+  
+  plot_list[[name]] <- plot
+}
+
+plot_list$CLAIM3YEARS
+
+# Arrange plots in a grid layout
+grid_plots <- wrap_plots(plotlist = plot_list, ncol = 2)  # Change ncol according to desired layout
+
+grid_plots
+
+
+
+
+
+fraud_list <- list()
+
+for (name in customer_features) {
+  itergroup <- fraud_df %>%filter(resiliated=="Y")%>% 
+    group_by(resiliated, across(all_of(name))) %>%  # Use across for dynamic column selection
+    summarise(cnt = n(),percentage = n() / nrow(fraud_df) * 100)%>%mutate(perct=cnt/sum(cnt))%>%
+    arrange(-percentage)
+  
+  fraud_list[[name]] <- itergroup
+}
+fraud_list
+
+fraud_chi_tests =list()
+for (name in customer_features){
+  test=chi_test(fraud_df,"resiliated",name)
+  fraud_chi_tests[[name]] <-test
+}
+fraud_chi_tests 
+#Chi_square test indicates all of these features have some kind of association with)
+fraud_list
+
+#Insights from resiliated policies
+#Gender     :  40% female and 59% male
+#MTA_FLAG   : 70% is Yes and 30% is No
+#CLAIM3YEARS :89% IS no AND 11% IS YES
+#Police emission : 99% is no and 0.01 % is yes
+#PROP_TYPE        :10 IS 28% 2 IS 21% 1 IS 16% these are probably random factors which are insignificant
+#LEGAL_ADDON     :63% IS YES AND 36% IS nO
+#Age     :These are random factors which are insignificant for predicting defrauding
+#Maritial status  :M is 44% O is 17% w is 14% and P is 11% and S is 05%
+#EMP_STATUS : R is 76%  E is 18% and s is 2% ohers are less than 1%
+#OCC_STATUS :Not significant because 99% is PH
+#Payment_method :62% is NonDD and 33% is pure DD and there is only  4% default from DD-other payments
+#SEC_DISC_REQ : 79% IS YES
+
+
+
+
+
+
+
+# Assuming 'your_dataframe' is your DataFrame
+selected_columns <- c(
+  "APPR_LOCKS",
+  "SAFE_INSTALLED",
+  "YEARBUILT",
+  "SUM_INSURED_BUILDINGS",
+  "SUM_INSURED_CONTENTS",
+  "NCD_GRANTED_YEARS_B",
+  "SPEC_SUM_INSURED",
+  "SPEC_ITEM_PREM",
+  "UNSPEC_HRP_PREM",
+  "BEDROOMS",
+  "PAYMENT_FREQUENCY",
+  "MTA_FAP",
+  "MTA_APRP",
+  "CLAIM3YEARS",
+  "age",
+  "LEGAL_ADDON",
+  "HOME_EM_ADDON",
+  "KEYCARE_ADDON",
+  "GARDEN_ADDON",
+  "HP1_ADDON",
+  "HP2_ADDON",
+  "HP3_ADDON",
+  "CONTENTS_COVER",
+  "P1_EMP_STATUS",
+  "P1_MAR_STATUS",
+  "P1_SEX","FLOODING","BUS_USE","LAST_ANN_PREM_GROSS","resiliated"
+)
+subsetted_df <- df%>%select(selected_columns)
+
+subsetted_df%>%filter(HP3_ADDON==1&HP2_ADDON==1)
+
+
+#write.csv(subsetted_df,file = "G:/LILTHOMA/Rise_Wpu/Mentor_Mind/Identify_premium_pricing_attributes_for_home_insurance_using_R/COMPONENT 4/selected_features.csv",row.names = F)
+#subsetted_df <-read.csv("G:/LILTHOMA/Rise_Wpu/Mentor_Mind/Identify_premium_pricing_attributes_for_home_insurance_using_R/COMPONENT 4/selected_features.csv")
+
+
+
+
+str(subsetted_df)
+
+numerical_features_vizz <-subsetted_df%>%
+  select_if(function(x) is.numeric(x) && n_distinct(x) > 2)
+str(numerical_features_vizz)
+
+# Set up the plotting grid
+par(mfrow = c(4, 3))
+
+# Loop through each numerical feature and create a histogram
+for (feature in names(numerical_features_vizz)) {
+  hist(numerical_features_vizz[[feature]], col = heat.colors(8), main = feature)
+}
+
+
+# Set up the plotting grid
+par(mfrow = c(4, 3))
+
+# Loop through each numerical feature and create boxplot
+for (feature in names(numerical_features_vizz)) {
+  boxplot(numerical_features_vizz[[feature]],main=feature)
+}
+scatter_names <-names(numerical_features_vizz)[-11]
+
+
+# Loop through each feature and create a scatter plot with a smooth line
+
+cor(numerical_features_vizz)
+
+
+
+#The following subplots for scatterplot code takes the most amount of time you can comment this out
+#if you are running the whole script together
+
+#Rehaping to long format
+library(tidyr)
+common=numerical_features_vizz$LAST_ANN_PREM_GROSS
+df_long <- gather(numerical_features_vizz,key="feature",value = "value",-LAST_ANN_PREM_GROSS)
+ggplot(data=df_long,aes(x=LAST_ANN_PREM_GROSS,y=value))+
+  geom_point()+
+  facet_wrap(~feature,scales="free_y",ncol=3)
+
+
+categorical_features_vizz <- subsetted_df%>%
+  select_if(function(x) is.character(x) && n_distinct(x)>2)
+
+binary_vars_vizz <-subsetted_df%>%
+  select_if(function(x) is.logical(x) | all(x %in% c("Y","N"))| all(x %in% c(1,0)))
+dim(categorical_features_vizz)
+dim(binary_vars_vizz)
+
+all_categories_vizz <-cbind(categorical_features_vizz,binary_vars_vizz,subsetted_df$LAST_ANN_PREM_GROSS)%>%
+  rename("LAST_ANN_PREM_GROSS"="subsetted_df$LAST_ANN_PREM_GROSS")
+  
+
+#WE will plot Bar graph showing PREMIUM PAID for all the categories
+#For showing all the plots in one grid we will be ploting categories with binary features seperately
+non_binary <- cbind(categorical_features_vizz,subsetted_df$LAST_ANN_PREM_GROSS)%>%
+  rename("LAST_ANN_PREM_GROSS"="subsetted_df$LAST_ANN_PREM_GROSS")
+
+
+#EMPLOYEE_STATus
+emp_Status <- all_categories_vizz%>%group_by(P1_EMP_STATUS)%>%summarise(
+  avg=mean(LAST_ANN_PREM_GROSS)
+)
+emp_Plot <- ggplot(data=emp_Status,aes(x=reorder(P1_EMP_STATUS,-avg),y=avg))+
+  geom_bar(stat="identity",aes(fill=P1_EMP_STATUS))+
+  geom_text(aes(label=round(avg),vjust=-0.1))+
+  theme(axis.text=element_blank())+
+  labs(title="Barplot of Employeement status against ANNUAL PREMIUM PAID",x="Employment Status",y="AVerage premium paid")+
+  theme(legend.position = "top")
+emp_Plot
+
+#INSIGHTS: 
+#C PAYS THE HIGHEST PREMIUM FOLLOWED BY S THEN v THEN E THEN F THEN H THEN I THEN N THEN A THEN U AND LASTLY R
+#CORPORATE -> STUDENT ->VIP ->EMPLOYEE ->FARMER ->HOUSEWIFE ->I ->N ->A -> U -> RETIRED
+
+
+
+#MAR_STATUS
+#According to the anova with a sample cof 26 there isnt much of a difference in the premium paid
+
+ggplot(data=non_binary,aes(x=P1_MAR_STATUS,y=LAST_ANN_PREM_GROSS))+
+  geom_boxplot()
+mar_df <- non_binary%>%group_by(P1_MAR_STATUS)%>%summarise(avg=mean(LAST_ANN_PREM_GROSS))
+ggplot(data=mar_df,aes(x=reorder(P1_MAR_STATUS,-avg),y=avg))+geom_bar(stat="identity",aes(fill=P1_MAR_STATUS))+
+  theme(axis.text.x = element_blank())
+
+names(non_binary)
+
+#Marital  status doesnt contribute to premium paid            
+
+
+
+#BINARY CAETGORIES
+#"APPR_LOCKS"          "SAFE_INSTALLED"      "PAYMENT_FREQUENCY"   "CLAIM3YEARS"        
+#"LEGAL_ADDON"         "HOME_EM_ADDON"       "KEYCARE_ADDON"       "GARDEN_ADDON"       
+# "HP1_ADDON"           "HP2_ADDON"           "HP3_ADDON"           "CONTENTS_COVER"     
+# "FLOODING"            "BUS_USE"             "LAST_ANN_PREM_GROSS"
+
+binary_ <- cbind(binary_vars_vizz,subsetted_df$LAST_ANN_PREM_GROSS)%>%
+  rename("LAST_ANN_PREM_GROSS"="subsetted_df$LAST_ANN_PREM_GROSS")
+names(binary_vars_vizz)
+
+
+#We will differentiate rest of  categorical binary features into
+#features of house and customer and also add up the extra added hosue property to create a new feature 
+#of no of house properties added
+
+binary_customer <-c("PAYMENT_FREQUENCY","CLAIM3YEARS","LEGAL_ADDON","CONTENTS_COVER","HOME_EM_ADDON","KEYCARE_ADDON","GARDEN_ADDON")
+binary_hosue    <-c("APPR_LOCKS","SAFE_INSTALLED","FLOODING","BUS_USE","HP1_ADDON","HP2_ADDON","HP3_ADDON") 
+
+unique(binary_$PAYMENT_FREQUENCY)
+#There is only two column 1 and 0 . 0 is imputed values
+#We will be no considering that and will be removed from the visualisation process and variables
+
+
+#Claim last 3 years
+ggplot(data=binary_,aes(x=CLAIM3YEARS,y=LAST_ANN_PREM_GROSS))+
+  geom_boxplot()
+c3 <- binary_%>%group_by(CLAIM3YEARS)%>%summarise(
+  avg=median(LAST_ANN_PREM_GROSS)
+)
+ggplot(data=c3,aes(x=CLAIM3YEARS,y=avg))+
+  geom_bar(stat="identity",aes(fill=CLAIM3YEARS))+
+  labs(title="Premium difference of customers who claimed during last 3 years")+
+  theme(legend.position="top")
+#INSIGHTS : The average premium paid by clients who had initiated claims in past 3 years
+# pays a higher premium
+
+# LEGAL_ADDON
+ggplot(data=binary_,aes(x=LEGAL_ADDON,y=LAST_ANN_PREM_GROSS))+
+  geom_boxplot()
+c4 <- binary_%>%group_by(LEGAL_ADDON)%>%summarise(
+  avg=median(LAST_ANN_PREM_GROSS)
+)
+ggplot(data=c4,aes(x=LEGAL_ADDON,y=avg))+
+  geom_bar(stat="identity",aes(fill=LEGAL_ADDON))+
+  labs(title="Premium difference of clients who opted legal_addon ")+
+  theme(legend.position="top")
+#INSIGHTS :The average premium paid by clients who opted for legal add on pays a higher premium
+
+# COntents cover
+names(binary_)
+ggplot(data=binary_,aes(x=CONTENTS_COVER,y=LAST_ANN_PREM_GROSS))+
+  geom_boxplot()
+c5 <- binary_%>%group_by(CONTENTS_COVER)%>%summarise(
+  avg=median(LAST_ANN_PREM_GROSS)
+)
+ggplot(data=c5,aes(x=CONTENTS_COVER,y=avg))+
+  geom_bar(stat="identity")
+#INSIGHTS: Average  premium paid by clients who opted for contents cover is higher 
+
+
+#HOME_EM_ADDON
+
+ggplot(data=binary_,aes(x=HOME_EM_ADDON,y=LAST_ANN_PREM_GROSS))+
+  geom_boxplot()
+c6 <- binary_%>%group_by(HOME_EM_ADDON)%>%summarise(
+  avg=median(LAST_ANN_PREM_GROSS)
+)
+ggplot(data=c6,aes(x=HOME_EM_ADDON,y=avg))+
+  geom_bar(stat="identity",aes(fill=HOME_EM_ADDON))+
+  labs(title="Average PRemium of HOuses Who opted for Emergencies")+
+  theme_minimal()+
+  theme(legend.position = "top")
+#INSIGHTS :home emergencies opted clients pays a higher premium
+
+
+#KEYCARE_ADDON
+
+ggplot(data=binary_,aes(x=KEYCARE_ADDON,y=LAST_ANN_PREM_GROSS))+
+  geom_boxplot()
+c7 <- binary_%>%group_by(KEYCARE_ADDON)%>%summarise(
+  avg=median(LAST_ANN_PREM_GROSS)
+)
+ggplot(data=c7,aes(x=KEYCARE_ADDON,y=avg))+
+  geom_bar(stat="identity")
+#INSIGHTS :Keycare opted clients pays a higher premium
+
+
+#GARDEN_ADDON
+ggplot(data=binary_,aes(x=GARDEN_ADDON,y=LAST_ANN_PREM_GROSS))+
+  geom_boxplot()
+c8 <- binary_%>%group_by(GARDEN_ADDON)%>%summarise(
+  avg=median(LAST_ANN_PREM_GROSS)
+)
+ggplot(data=c8,aes(x=GARDEN_ADDON,y=avg))+
+  geom_bar(stat="identity")
+#INSIGHTS :Garden opted clients pays a higher premium
+
+
+###########FEATURES OF HOUSE
+
+# APPR_LOCKS
+ggplot(data = binary_, aes(x = APPR_LOCKS, y = LAST_ANN_PREM_GROSS)) +
+  geom_boxplot()
+
+c9 <- binary_ %>% group_by(APPR_LOCKS) %>% summarise(
+  avg = median(LAST_ANN_PREM_GROSS)
+)
+
+ggplot(data = c9, aes(x = APPR_LOCKS, y = avg)) +
+  geom_bar(stat = "identity",aes(fill=APPR_LOCKS))+
+  labs(title="Difference in PRemium paid by houses with appropriate locks",x="Lock Type",y="Average Preium")+
+  theme(legend.position = "top")
+#INSIGHTS :Houses with APPR_LOCKS PAYS A higher premium
+
+
+# SAFE_INSTALLED
+ggplot(data = binary_, aes(x = SAFE_INSTALLED, y = LAST_ANN_PREM_GROSS)) +
+  geom_boxplot()
+
+c10 <- binary_ %>% group_by(SAFE_INSTALLED) %>% summarise(
+  avg = median(LAST_ANN_PREM_GROSS)
+)
+
+ggplot(data = c10, aes(x = SAFE_INSTALLED, y = avg)) +
+  geom_bar(stat = "identity",aes(fill=SAFE_INSTALLED))+
+  labs(title = "Difference of premium paid by houses with Safe installed")+
+  theme(legend.position = "top")
+#INSIGHTS: houses with safe installed pays a higher premium
+
+# FLOODING
+ggplot(data = binary_, aes(x = FLOODING, y = LAST_ANN_PREM_GROSS)) +
+  geom_boxplot()
+
+c11 <- binary_ %>% group_by(FLOODING) %>% summarise(
+  avg = median(LAST_ANN_PREM_GROSS)
+)
+
+ggplot(data = c11, aes(x = FLOODING, y = avg)) +
+  geom_bar(stat = "identity",aes(fill=FLOODING))+
+  labs(title="FLOODING status of houses against premium paid",x="FLOODING",Y="Average Premium paid")+
+  theme(legend.position = "top")
+
+#INSIGHTS :houses which are not flood proof pays a higher premium
+
+# BUS_USE
+ggplot(data = binary_, aes(x = BUS_USE, y = LAST_ANN_PREM_GROSS)) +
+  geom_boxplot()
+
+c12 <- binary_ %>% group_by(BUS_USE) %>% summarise(
+  avg = median(LAST_ANN_PREM_GROSS)
+)
+
+ggplot(data = c12, aes(x = BUS_USE, y = avg)) +
+  geom_bar(stat = "identity",aes(fill=BUS_USE))+
+  labs(title = "Difference in premium paid by houses with bus option")
+#INSGIHTS : houses which has bus_use option pays higher premium
+
+
+# HP1_ADDON
+c13 <- binary_ %>% group_by(HP1_ADDON) %>% summarise(
+  avg = median(LAST_ANN_PREM_GROSS)
+)
+
+ggplot(data = c13, aes(x = HP1_ADDON, y = avg)) +
+  geom_bar(stat = "identity")
+
+# HP2_ADDON
+c14 <- binary_ %>% group_by(HP2_ADDON) %>% summarise(
+  avg = median(LAST_ANN_PREM_GROSS)
+)
+
+ggplot(data = c14, aes(x = HP2_ADDON, y = avg)) +
+  geom_bar(stat = "identity")
+
+# HP3_ADDON
+c15 <- binary_ %>% group_by(HP3_ADDON) %>% summarise(
+  avg = median(LAST_ANN_PREM_GROSS)
+)
+
+ggplot(data = c15, aes(x = HP3_ADDON, y = avg)) +
+  geom_bar(stat = "identity")
+
+# Assuming binary_ is a data frame
+binary_$no_of_house_addon <- rowSums(binary_[c("HP1_ADDON", "HP2_ADDON", "HP3_ADDON")])
+unique(binary_$no_of_house_addon )
+ggplot(data=binary_,aes(x=LAST_ANN_PREM_GROSS,y=no_of_house_addon))+
+  geom_point()
+
+#INSIGHTS :There is no as such hike in premium paid with the number of houses add on 
+
+
+names(subsetted_df)
+security_dicount <-subsetted_df%>%select(SEC_DISC_REQ,LAST_ANN_PREM_GROSS)
+ggplot(data=security_dicount,aes(x=SEC_DISC_REQ,y=LAST_ANN_PREM_GROSS))+
+  geom_boxplot()
+security_df <-subsetted_df%>%group_by(SEC_DISC_REQ)%>%summarise(avg=mean(LAST_ANN_PREM_GROSS))
+
+ggplot(data=security_df,aes(x=SEC_DISC_REQ,y=avg))+
+  geom_bar(stat="identity",aes(fill=SEC_DISC_REQ))
+
+ggplot(data=security_dicount,aes(x=LAST_ANN_PREM_GROSS,fill=SEC_DISC_REQ))+
+  geom_histogram(position = "identity", alpha = 0.5, bins = 10)
+
+#CLients who have opted for security discount pays higher premium
+#This is a unlikely scenario and Ttest also shows no significance
+
+
+
+
+#Analysis of Customers who are likely to fraud on their payments
+
+#Insights from resiliated policies
+#Gender     :  40% female and 59% male
+#MTA_FLAG   : 70% is Yes and 30% is No
+#CLAIM3YEARS :89% IS no AND 11% IS YES
+#Police emission : 99% is no and 0.01 % is yes
+#LEGAL_ADDON     :63% IS YES AND 36% IS nO
+#Maritial status  :M is 44% O is 17% w is 14% and P is 11% and S is 05%
+#EMP_STATUS : R is 76%  E is 18% and s is 2% ohers are less than 1%
+#Payment_method :62% is NonDD and 33% is pure DD and there is only  4% default from DD-other payments
+#SEC_DISC_REQ : 79% IS YES
+
+
